@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, Brain, RotateCcw, Play, Link } from "lucide-react";
+import { Upload, Sparkles, RotateCcw, Play, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -288,7 +288,7 @@ const WorkflowCanvas = () => {
         <WorkflowModule
           id="analyze"
           title="AI Image Analyzer"
-          icon={<Brain className="h-8 w-8" />}
+          icon={<Sparkles className="h-8 w-8" />}
           status={moduleStatuses.analyze}
           position={{ x: 550, y: 200 }}
           hasInput={true}
