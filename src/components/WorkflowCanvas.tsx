@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, Brain, FileText } from "lucide-react";
+import { Upload, Brain, FileText, RotateCcw, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import WorkflowModule from "./WorkflowModule";
@@ -19,6 +19,18 @@ const WorkflowCanvas = () => {
   const [flowActive, setFlowActive] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const resetWorkflow = () => {
+    setUploadedFile(null);
+    setUploadedImageUrl(null);
+    setModuleStatuses({
+      upload: "idle",
+      analyze: "idle",
+      results: "idle",
+    });
+    setFlowActive(false);
+    setAnalysis(null);
+  };
 
   const handleFileSelect = (file: File) => {
     // Validate file type
@@ -116,16 +128,15 @@ const WorkflowCanvas = () => {
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-12rem)] bg-muted/30 rounded-lg overflow-hidden">
-      {/* Grid Background */}
+    <div className="relative w-full h-[calc(100vh-12rem)] bg-gradient-to-br from-background to-muted/30 rounded-lg overflow-hidden border border-border">
+      {/* Subtle Grid Background */}
       <div 
-        className="absolute inset-0 opacity-20"
+        className="absolute inset-0 opacity-10"
         style={{
           backgroundImage: `
-            linear-gradient(hsl(var(--border)) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)
+            radial-gradient(circle, hsl(var(--muted-foreground)) 1px, transparent 1px)
           `,
-          backgroundSize: "30px 30px",
+          backgroundSize: "40px 40px",
         }}
       />
 
@@ -138,31 +149,26 @@ const WorkflowCanvas = () => {
         {/* Connection Lines */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
           <defs>
-            <marker
-              id="arrowhead"
-              markerWidth="10"
-              markerHeight="10"
-              refX="9"
-              refY="3"
-              orient="auto"
-            >
-              <polygon
-                points="0 0, 10 3, 0 6"
-                fill="hsl(var(--border))"
-                className="transition-all duration-300"
-              />
-            </marker>
+            <linearGradient id="lineGradientActive" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="1" />
+            </linearGradient>
+            <linearGradient id="lineGradientComplete" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="hsl(var(--success))" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity="1" />
+            </linearGradient>
           </defs>
           
           {/* Upload to Analyze Connection */}
-          <path
-            d="M 300 200 Q 400 200 500 200"
-            stroke={moduleStatuses.analyze !== "idle" ? "hsl(var(--accent))" : "hsl(var(--border))"}
-            strokeWidth="2"
-            fill="none"
-            markerEnd="url(#arrowhead)"
+          <line
+            x1="230"
+            y1="200"
+            x2="470"
+            y2="200"
+            stroke={moduleStatuses.analyze !== "idle" ? "url(#lineGradientActive)" : "hsl(var(--muted))"}
+            strokeWidth="3"
             className="transition-all duration-500"
-            strokeDasharray={flowActive && moduleStatuses.analyze === "active" ? "5,5" : "0"}
+            strokeDasharray={flowActive && moduleStatuses.analyze === "active" ? "8,8" : "0"}
             style={{
               animation: flowActive && moduleStatuses.analyze === "active" 
                 ? "dash 1s linear infinite" 
@@ -171,14 +177,15 @@ const WorkflowCanvas = () => {
           />
           
           {/* Analyze to Results Connection */}
-          <path
-            d="M 700 200 Q 800 200 900 200"
-            stroke={moduleStatuses.results !== "idle" ? "hsl(var(--success))" : "hsl(var(--border))"}
-            strokeWidth="2"
-            fill="none"
-            markerEnd="url(#arrowhead)"
+          <line
+            x1="630"
+            y1="200"
+            x2="870"
+            y2="200"
+            stroke={moduleStatuses.results !== "idle" ? "url(#lineGradientComplete)" : "hsl(var(--muted))"}
+            strokeWidth="3"
             className="transition-all duration-500"
-            strokeDasharray={flowActive && moduleStatuses.results === "active" ? "5,5" : "0"}
+            strokeDasharray={flowActive && moduleStatuses.results === "active" ? "8,8" : "0"}
             style={{
               animation: flowActive && moduleStatuses.results === "active" 
                 ? "dash 1s linear infinite" 
@@ -191,9 +198,9 @@ const WorkflowCanvas = () => {
         <WorkflowModule
           id="upload"
           title="Image Upload"
-          icon={<Upload className="h-5 w-5" />}
+          icon={<Upload className="h-8 w-8" />}
           status={moduleStatuses.upload}
-          position={{ x: 200, y: 200 }}
+          position={{ x: 180, y: 200 }}
           hasInput={false}
           hasOutput={true}
         >
@@ -224,9 +231,9 @@ const WorkflowCanvas = () => {
         <WorkflowModule
           id="analyze"
           title="AI Analyzer"
-          icon={<Brain className="h-5 w-5" />}
+          icon={<Brain className="h-8 w-8" />}
           status={moduleStatuses.analyze}
-          position={{ x: 600, y: 200 }}
+          position={{ x: 550, y: 200 }}
           hasInput={true}
           hasOutput={true}
         >
@@ -236,28 +243,40 @@ const WorkflowCanvas = () => {
         <WorkflowModule
           id="results"
           title="Results"
-          icon={<FileText className="h-5 w-5" />}
+          icon={<FileText className="h-8 w-8" />}
           status={moduleStatuses.results}
-          position={{ x: 1000, y: 200 }}
+          position={{ x: 920, y: 200 }}
           hasInput={true}
           hasOutput={false}
         >
           <p>View detailed analysis and suggestions</p>
         </WorkflowModule>
 
-        {/* Run Button */}
-        {uploadedFile && !flowActive && moduleStatuses.analyze === "idle" && (
-          <div className="absolute top-8 right-8 animate-scale-in">
+        {/* Action Buttons */}
+        <div className="absolute top-8 right-8 flex gap-3 animate-fade-in">
+          {uploadedFile && !flowActive && moduleStatuses.analyze === "idle" && (
             <Button
               size="lg"
               onClick={runWorkflow}
-              className="shadow-lg gap-2"
+              className="shadow-lg gap-2 bg-[hsl(270,70%,55%)] hover:bg-[hsl(270,70%,50%)]"
             >
-              <Brain className="h-5 w-5" />
+              <Play className="h-5 w-5" />
               Run Workflow
             </Button>
-          </div>
-        )}
+          )}
+          
+          {moduleStatuses.results === "complete" && (
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={resetWorkflow}
+              className="shadow-lg gap-2 animate-scale-in"
+            >
+              <RotateCcw className="h-5 w-5" />
+              Reset
+            </Button>
+          )}
+        </div>
 
         {/* Results Panel */}
         {analysis && (
