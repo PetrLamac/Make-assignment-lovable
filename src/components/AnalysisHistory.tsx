@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Analysis } from "@/pages/Index";
-import { Clock } from "lucide-react";
+import { Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
 
 interface AnalysisHistoryProps {
   history: Analysis[];
@@ -9,6 +12,20 @@ interface AnalysisHistoryProps {
 }
 
 const AnalysisHistory = ({ history, onSelect }: AnalysisHistoryProps) => {
+  const [openItems, setOpenItems] = useState<Set<string>>(new Set());
+
+  const toggleItem = (analysisId: string) => {
+    setOpenItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(analysisId)) {
+        newSet.delete(analysisId);
+      } else {
+        newSet.add(analysisId);
+      }
+      return newSet;
+    });
+  };
+
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case "high":
@@ -42,45 +59,123 @@ const AnalysisHistory = ({ history, onSelect }: AnalysisHistoryProps) => {
 
   return (
     <div className="space-y-4">
-      {history.map((item) => (
-        <Card
-          key={item.analysis_id}
-          className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => onSelect(item)}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge className={getSeverityColor(item.severity)}>
-                  {item.severity.toUpperCase()}
-                </Badge>
-                <Badge variant="outline" className="font-mono text-xs">
-                  {item.probable_cause.replace(/_/g, " ")}
-                </Badge>
+      {history.map((item) => {
+        const isOpen = openItems.has(item.analysis_id);
+        return (
+          <Collapsible key={item.analysis_id} open={isOpen} onOpenChange={() => toggleItem(item.analysis_id)}>
+            <Card className="p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className={getSeverityColor(item.severity)}>
+                      {item.severity.toUpperCase()}
+                    </Badge>
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {item.probable_cause.replace(/_/g, " ")}
+                    </Badge>
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-1">
+                    {item.error_title}
+                  </h3>
+                  {item.error_code && (
+                    <p className="text-sm text-muted-foreground font-mono">
+                      {item.error_code}
+                    </p>
+                  )}
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                    {item.suggested_fix}
+                  </p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(item.created_at)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(item.confidence * 100).toFixed(0)}% confident
+                  </p>
+                </div>
               </div>
-              <h3 className="font-semibold text-foreground mb-1 truncate">
-                {item.error_title}
-              </h3>
-              {item.error_code && (
-                <p className="text-sm text-muted-foreground font-mono">
-                  {item.error_code}
-                </p>
-              )}
-              <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                {item.suggested_fix}
-              </p>
-            </div>
-            <div className="text-right flex-shrink-0">
-              <p className="text-xs text-muted-foreground">
-                {formatDate(item.created_at)}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {(item.confidence * 100).toFixed(0)}% confident
-              </p>
-            </div>
-          </div>
-        </Card>
-      ))}
+
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full mt-3">
+                  {isOpen ? (
+                    <>
+                      <ChevronUp className="h-4 w-4 mr-2" />
+                      Hide Details
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                      Show Details
+                    </>
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+
+              <CollapsibleContent className="mt-4 space-y-4">
+                {/* Suggested Fix */}
+                <div>
+                  <h4 className="text-sm font-semibold mb-2">Suggested Fix</h4>
+                  <p className="text-sm text-muted-foreground">{item.suggested_fix}</p>
+                </div>
+
+                {/* Product & Environment */}
+                {(item.product || item.environment) && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {item.product && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Product</h4>
+                        <p className="text-sm text-muted-foreground">{item.product}</p>
+                      </div>
+                    )}
+                    {item.environment && Object.keys(item.environment).length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Environment</h4>
+                        <div className="space-y-1">
+                          {Object.entries(item.environment).map(([key, value]) => (
+                            <p key={key} className="text-sm text-muted-foreground">
+                              <span className="font-mono">{key}:</span> {String(value)}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Follow-up Questions */}
+                {item.follow_up_questions && item.follow_up_questions.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Follow-up Questions</h4>
+                    <ul className="list-disc list-inside space-y-1">
+                      {item.follow_up_questions.map((question, idx) => (
+                        <li key={idx} className="text-sm text-muted-foreground">{question}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Key Text Blocks */}
+                {item.key_text_blocks && item.key_text_blocks.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Extracted Text</h4>
+                    <div className="space-y-2">
+                      {item.key_text_blocks.map((block, idx) => (
+                        <div key={idx} className="bg-muted/50 p-2 rounded text-sm">
+                          <p className="font-mono text-xs text-muted-foreground mb-1">
+                            Confidence: {(block.confidence * 100).toFixed(0)}%
+                          </p>
+                          <p className="text-foreground">{block.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        );
+      })}
     </div>
   );
 };
