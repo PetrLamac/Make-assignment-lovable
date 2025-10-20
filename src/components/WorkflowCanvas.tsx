@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Upload, Brain, RotateCcw, Play, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import WorkflowModule from "./WorkflowModule";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ const WorkflowCanvas = () => {
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [imageUrlInput, setImageUrlInput] = useState("");
   const [inputMode, setInputMode] = useState<"file" | "url">("file");
+  const [selectedModel, setSelectedModel] = useState<string>("google/gemini-2.5-flash");
   const [moduleStatuses, setModuleStatuses] = useState({
     upload: "idle" as "idle" | "active" | "complete" | "error",
     analyze: "idle" as "idle" | "active" | "complete" | "error",
@@ -119,6 +121,7 @@ const WorkflowCanvas = () => {
       } else if (uploadedImageUrl) {
         formData.append("imageUrl", uploadedImageUrl);
       }
+      formData.append("model", selectedModel);
 
       // Call edge function
       const { data, error } = await supabase.functions.invoke("analyze-image", {
@@ -291,7 +294,34 @@ const WorkflowCanvas = () => {
           hasInput={true}
           hasOutput={false}
         >
-          <p>Analyzes error screenshots using AI vision</p>
+          <div className="space-y-3">
+            <p className="text-xs mb-2">Select AI Model</p>
+            <Select value={selectedModel} onValueChange={setSelectedModel}>
+              <SelectTrigger className="w-full text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="google/gemini-2.5-pro" className="text-xs">
+                  Gemini 2.5 Pro
+                </SelectItem>
+                <SelectItem value="google/gemini-2.5-flash" className="text-xs">
+                  Gemini 2.5 Flash
+                </SelectItem>
+                <SelectItem value="google/gemini-2.5-flash-lite" className="text-xs">
+                  Gemini 2.5 Flash Lite
+                </SelectItem>
+                <SelectItem value="openai/gpt-5" className="text-xs">
+                  GPT-5
+                </SelectItem>
+                <SelectItem value="openai/gpt-5-mini" className="text-xs">
+                  GPT-5 Mini
+                </SelectItem>
+                <SelectItem value="openai/gpt-5-nano" className="text-xs">
+                  GPT-5 Nano
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </WorkflowModule>
 
         {/* Action Buttons */}
