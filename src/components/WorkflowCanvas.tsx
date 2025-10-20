@@ -1,12 +1,10 @@
 import { useState, useRef } from "react";
-import { Upload, Brain, FileText, RotateCcw, Play, Link } from "lucide-react";
+import { Upload, Brain, RotateCcw, Play, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import WorkflowModule from "./WorkflowModule";
 import { supabase } from "@/integrations/supabase/client";
-import AnalysisResult from "./AnalysisResult";
-import { Analysis } from "@/pages/Index";
 
 const WorkflowCanvas = () => {
   const { toast } = useToast();
@@ -17,10 +15,8 @@ const WorkflowCanvas = () => {
   const [moduleStatuses, setModuleStatuses] = useState({
     upload: "idle" as "idle" | "active" | "complete" | "error",
     analyze: "idle" as "idle" | "active" | "complete" | "error",
-    results: "idle" as "idle" | "active" | "complete" | "error",
   });
   const [flowActive, setFlowActive] = useState(false);
-  const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetWorkflow = () => {
@@ -31,10 +27,8 @@ const WorkflowCanvas = () => {
     setModuleStatuses({
       upload: "idle",
       analyze: "idle",
-      results: "idle",
     });
     setFlowActive(false);
-    setAnalysis(null);
   };
 
   const handleUrlSubmit = () => {
@@ -64,9 +58,7 @@ const WorkflowCanvas = () => {
     setModuleStatuses({
       upload: "complete",
       analyze: "idle",
-      results: "idle",
     });
-    setAnalysis(null);
     setFlowActive(false);
   };
 
@@ -96,9 +88,7 @@ const WorkflowCanvas = () => {
     setModuleStatuses({
       upload: "complete",
       analyze: "idle",
-      results: "idle",
     });
-    setAnalysis(null);
     setFlowActive(false);
   };
 
@@ -119,7 +109,6 @@ const WorkflowCanvas = () => {
     setModuleStatuses({
       upload: "complete",
       analyze: "active",
-      results: "idle",
     });
 
     try {
@@ -138,26 +127,23 @@ const WorkflowCanvas = () => {
 
       if (error) throw error;
 
-      // Update to results phase
+      // Update to complete
       setModuleStatuses({
         upload: "complete",
         analyze: "complete",
-        results: "complete",
       });
 
-      setAnalysis(data);
       setFlowActive(false);
 
       toast({
         title: "Analysis Complete",
-        description: "Image analyzed successfully",
+        description: "Image analyzed and saved to history",
       });
     } catch (error: any) {
       console.error("Analysis error:", error);
       setModuleStatuses({
         upload: "complete",
         analyze: "error",
-        results: "idle",
       });
       setFlowActive(false);
 
@@ -207,29 +193,12 @@ const WorkflowCanvas = () => {
             y1="200"
             x2="470"
             y2="200"
-            stroke={moduleStatuses.analyze !== "idle" ? "url(#lineGradientActive)" : "hsl(var(--muted))"}
+            stroke={moduleStatuses.analyze !== "idle" ? "url(#lineGradientComplete)" : "hsl(var(--muted))"}
             strokeWidth="3"
             className="transition-all duration-500"
             strokeDasharray={flowActive && moduleStatuses.analyze === "active" ? "8,8" : "0"}
             style={{
               animation: flowActive && moduleStatuses.analyze === "active" 
-                ? "dash 1s linear infinite" 
-                : "none"
-            }}
-          />
-          
-          {/* Analyze to Results Connection */}
-          <line
-            x1="630"
-            y1="200"
-            x2="870"
-            y2="200"
-            stroke={moduleStatuses.results !== "idle" ? "url(#lineGradientComplete)" : "hsl(var(--muted))"}
-            strokeWidth="3"
-            className="transition-all duration-500"
-            strokeDasharray={flowActive && moduleStatuses.results === "active" ? "8,8" : "0"}
-            style={{
-              animation: flowActive && moduleStatuses.results === "active" 
                 ? "dash 1s linear infinite" 
                 : "none"
             }}
@@ -320,21 +289,9 @@ const WorkflowCanvas = () => {
           status={moduleStatuses.analyze}
           position={{ x: 550, y: 200 }}
           hasInput={true}
-          hasOutput={true}
-        >
-          <p>Analyzes error screenshots using AI vision</p>
-        </WorkflowModule>
-
-        <WorkflowModule
-          id="results"
-          title="Results"
-          icon={<FileText className="h-8 w-8" />}
-          status={moduleStatuses.results}
-          position={{ x: 920, y: 200 }}
-          hasInput={true}
           hasOutput={false}
         >
-          <p>View detailed analysis and suggestions</p>
+          <p>Analyzes error screenshots using AI vision</p>
         </WorkflowModule>
 
         {/* Action Buttons */}
@@ -350,7 +307,7 @@ const WorkflowCanvas = () => {
             </Button>
           )}
           
-          {moduleStatuses.results === "complete" && (
+          {moduleStatuses.analyze === "complete" && (
             <Button
               size="lg"
               variant="outline"
@@ -362,13 +319,6 @@ const WorkflowCanvas = () => {
             </Button>
           )}
         </div>
-
-        {/* Results Panel */}
-        {analysis && (
-          <div className="absolute inset-x-4 bottom-4 top-80 overflow-auto animate-fade-in">
-            <AnalysisResult analysis={analysis} />
-          </div>
-        )}
       </div>
 
       {/* Hidden File Input */}
