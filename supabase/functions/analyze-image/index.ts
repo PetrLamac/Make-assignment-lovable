@@ -23,6 +23,9 @@ serve(async (req) => {
     // Parse multipart form data
     const formData = await req.formData();
     const file = formData.get('file') as File;
+    const model = formData.get('model') as string || 'google/gemini-2.5-flash';
+    
+    console.log('Using AI model:', model);
     
     if (!file) {
       console.error('No file provided in request');
@@ -79,7 +82,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: model,
         messages: [
           {
             role: 'system',
