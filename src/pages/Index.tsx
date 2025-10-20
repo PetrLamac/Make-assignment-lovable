@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload, FileText, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, FileText, Clock, AlertCircle, CheckCircle2, Settings } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -128,7 +128,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="analyze" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
             <TabsTrigger value="analyze" className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
               Analyze
@@ -136,6 +136,10 @@ const Index = () => {
             <TabsTrigger value="history" className="flex items-center gap-2" onClick={loadHistory}>
               <Clock className="h-4 w-4" />
               History
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -147,8 +151,10 @@ const Index = () => {
             {currentAnalysis && (
               <AnalysisResult analysis={currentAnalysis} />
             )}
+          </TabsContent>
 
-            {/* API Info Card */}
+          <TabsContent value="settings" className="space-y-6">
+            {/* API Integration Card */}
             <Card className="p-6 border-accent/20">
               <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-accent" />
