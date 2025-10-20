@@ -14,7 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      image_analyses: {
+        Row: {
+          analysis_id: string
+          confidence: number | null
+          created_at: string
+          environment: Json | null
+          error_code: string | null
+          error_title: string
+          failure_reason: string | null
+          follow_up_questions: string[] | null
+          id: string
+          image_filename: string | null
+          image_size_bytes: number | null
+          key_text_blocks: Json | null
+          probable_cause: string
+          product: string | null
+          requester_ip: string | null
+          severity: string
+          status: string
+          suggested_fix: string
+          user_agent: string | null
+        }
+        Insert: {
+          analysis_id?: string
+          confidence?: number | null
+          created_at?: string
+          environment?: Json | null
+          error_code?: string | null
+          error_title: string
+          failure_reason?: string | null
+          follow_up_questions?: string[] | null
+          id?: string
+          image_filename?: string | null
+          image_size_bytes?: number | null
+          key_text_blocks?: Json | null
+          probable_cause: string
+          product?: string | null
+          requester_ip?: string | null
+          severity: string
+          status?: string
+          suggested_fix: string
+          user_agent?: string | null
+        }
+        Update: {
+          analysis_id?: string
+          confidence?: number | null
+          created_at?: string
+          environment?: Json | null
+          error_code?: string | null
+          error_title?: string
+          failure_reason?: string | null
+          follow_up_questions?: string[] | null
+          id?: string
+          image_filename?: string | null
+          image_size_bytes?: number | null
+          key_text_blocks?: Json | null
+          probable_cause?: string
+          product?: string | null
+          requester_ip?: string | null
+          severity?: string
+          status?: string
+          suggested_fix?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
