@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -69,21 +69,23 @@ serve(async (req) => {
     const base64 = btoa(String.fromCharCode(...new Uint8Array(bytes)));
     const dataUrl = `data:${file.type};base64,${base64}`;
 
-    console.log('Sending request to OpenAI Vision API');
+    console.log('Sending request to Lovable AI Gateway');
 
-    // Call OpenAI Vision API with structured output
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Lovable AI Gateway with structured output
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           {
             role: 'system',
             content: `You are an expert error analyzer for customer support. Extract structured information from error screenshots.
+
+Return ONLY a valid JSON object with these exact fields. No markdown, no code blocks, no commentary.
 
 TAXONOMY for probable_cause (use EXACTLY one of these):
 - network_error
@@ -126,29 +128,50 @@ Be precise and actionable.`
               }
             ]
           }
-        ],
-        max_tokens: 1500,
-        temperature: 0.3,
+        ]
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text();
-      console.error('OpenAI API error:', openaiResponse.status, errorText);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('AI gateway error:', aiResponse.status, errorText);
+      
+      if (aiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            status: 'failed',
+            reason: 'Rate limits exceeded, please try again shortly.',
+            error: '429 rate_limited'
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      if (aiResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ 
+            status: 'failed',
+            reason: 'Payment required, please add credits to your workspace.',
+            error: '402 payment_required'
+          }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
           status: 'failed',
-          reason: 'OpenAI API error',
-          error: `API returned ${openaiResponse.status}`
+          reason: 'AI gateway error',
+          error: `API returned ${aiResponse.status}`
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const openaiData = await openaiResponse.json();
-    console.log('Received response from OpenAI');
+    const aiData = await aiResponse.json();
+    console.log('Received response from AI gateway');
 
-    const content = openaiData.choices[0].message.content;
+    const content = aiData.choices[0].message.content;
     
     // Parse the JSON response from OpenAI
     let parsedData;
