@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
-import { Upload, Brain, FileText, RotateCcw, Play } from "lucide-react";
+import { Upload, Brain, FileText, RotateCcw, Play, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import WorkflowModule from "./WorkflowModule";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,8 @@ const WorkflowCanvas = () => {
   const { toast } = useToast();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [imageUrlInput, setImageUrlInput] = useState("");
+  const [inputMode, setInputMode] = useState<"file" | "url">("file");
   const [moduleStatuses, setModuleStatuses] = useState({
     upload: "idle" as "idle" | "active" | "complete" | "error",
     analyze: "idle" as "idle" | "active" | "complete" | "error",
@@ -23,6 +26,8 @@ const WorkflowCanvas = () => {
   const resetWorkflow = () => {
     setUploadedFile(null);
     setUploadedImageUrl(null);
+    setImageUrlInput("");
+    setInputMode("file");
     setModuleStatuses({
       upload: "idle",
       analyze: "idle",
@@ -30,6 +35,39 @@ const WorkflowCanvas = () => {
     });
     setFlowActive(false);
     setAnalysis(null);
+  };
+
+  const handleUrlSubmit = () => {
+    if (!imageUrlInput.trim()) {
+      toast({
+        title: "Empty URL",
+        description: "Please enter an image URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(imageUrlInput);
+    } catch {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid image URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadedImageUrl(imageUrlInput);
+    setUploadedFile(null);
+    setModuleStatuses({
+      upload: "complete",
+      analyze: "idle",
+      results: "idle",
+    });
+    setAnalysis(null);
+    setFlowActive(false);
   };
 
   const handleFileSelect = (file: File) => {
@@ -75,7 +113,7 @@ const WorkflowCanvas = () => {
   };
 
   const runWorkflow = async () => {
-    if (!uploadedFile) return;
+    if (!uploadedFile && !uploadedImageUrl) return;
 
     setFlowActive(true);
     setModuleStatuses({
@@ -87,7 +125,11 @@ const WorkflowCanvas = () => {
     try {
       // Prepare form data
       const formData = new FormData();
-      formData.append("file", uploadedFile);
+      if (uploadedFile) {
+        formData.append("file", uploadedFile);
+      } else if (uploadedImageUrl) {
+        formData.append("imageUrl", uploadedImageUrl);
+      }
 
       // Call edge function
       const { data, error } = await supabase.functions.invoke("analyze-image", {
@@ -197,40 +239,83 @@ const WorkflowCanvas = () => {
         {/* Modules */}
         <WorkflowModule
           id="upload"
-          title="Image Upload"
+          title="Select Image"
           icon={<Upload className="h-8 w-8" />}
           status={moduleStatuses.upload}
           position={{ x: 180, y: 200 }}
           hasInput={false}
           hasOutput={true}
         >
-          {!uploadedFile ? (
-            <div className="text-center">
-              <p className="mb-2">Drop image here or click to upload</p>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full"
-              >
-                Browse Files
-              </Button>
+          {!uploadedFile && !uploadedImageUrl ? (
+            <div className="space-y-3">
+              <div className="flex gap-2 mb-2">
+                <Button
+                  size="sm"
+                  variant={inputMode === "file" ? "default" : "outline"}
+                  onClick={() => setInputMode("file")}
+                  className="flex-1"
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  File
+                </Button>
+                <Button
+                  size="sm"
+                  variant={inputMode === "url" ? "default" : "outline"}
+                  onClick={() => setInputMode("url")}
+                  className="flex-1"
+                >
+                  <Link className="h-3 w-3 mr-1" />
+                  URL
+                </Button>
+              </div>
+              
+              {inputMode === "file" ? (
+                <div className="text-center">
+                  <p className="mb-2 text-xs">Drop image or click to browse</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full"
+                  >
+                    Browse Files
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Enter image URL"
+                    value={imageUrlInput}
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                    className="text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleUrlSubmit}
+                    className="w-full"
+                  >
+                    Load Image
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div>
               <img 
                 src={uploadedImageUrl!} 
-                alt="Uploaded" 
+                alt="Selected" 
                 className="w-full h-24 object-cover rounded mb-2"
               />
-              <p className="text-xs truncate">{uploadedFile.name}</p>
+              <p className="text-xs truncate">
+                {uploadedFile ? uploadedFile.name : "Image from URL"}
+              </p>
             </div>
           )}
         </WorkflowModule>
 
         <WorkflowModule
           id="analyze"
-          title="AI Analyzer"
+          title="AI Image Analyzer"
           icon={<Brain className="h-8 w-8" />}
           status={moduleStatuses.analyze}
           position={{ x: 550, y: 200 }}
@@ -254,7 +339,7 @@ const WorkflowCanvas = () => {
 
         {/* Action Buttons */}
         <div className="absolute top-8 right-8 flex gap-3 animate-fade-in">
-          {uploadedFile && !flowActive && moduleStatuses.analyze === "idle" && (
+          {(uploadedFile || uploadedImageUrl) && !flowActive && moduleStatuses.analyze === "idle" && (
             <Button
               size="lg"
               onClick={runWorkflow}
