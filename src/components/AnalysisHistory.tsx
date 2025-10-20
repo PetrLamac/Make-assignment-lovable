@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Analysis } from "@/pages/Index";
-import { Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Clock, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface AnalysisHistoryProps {
   history: Analysis[];
@@ -13,6 +14,7 @@ interface AnalysisHistoryProps {
 
 const AnalysisHistory = ({ history, onSelect }: AnalysisHistoryProps) => {
   const [openItems, setOpenItems] = useState<Set<string>>(new Set());
+  const { toast } = useToast();
 
   const toggleItem = (analysisId: string) => {
     setOpenItems(prev => {
@@ -23,6 +25,14 @@ const AnalysisHistory = ({ history, onSelect }: AnalysisHistoryProps) => {
         newSet.add(analysisId);
       }
       return newSet;
+    });
+  };
+
+  const copyToClipboard = (analysis: Analysis) => {
+    navigator.clipboard.writeText(JSON.stringify(analysis, null, 2));
+    toast({
+      title: "Copied to clipboard",
+      description: "Analysis JSON has been copied to your clipboard",
     });
   };
 
@@ -171,6 +181,24 @@ const AnalysisHistory = ({ history, onSelect }: AnalysisHistoryProps) => {
                     </div>
                   </div>
                 )}
+
+                {/* Raw JSON Response */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-semibold">Raw JSON Response</h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(item)}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy JSON
+                    </Button>
+                  </div>
+                  <pre className="bg-muted/50 p-4 rounded-lg overflow-x-auto text-xs">
+                    <code>{JSON.stringify(item, null, 2)}</code>
+                  </pre>
+                </div>
               </CollapsibleContent>
             </Card>
           </Collapsible>
